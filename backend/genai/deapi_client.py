@@ -70,14 +70,31 @@ async def _poll_job_result(client: httpx.AsyncClient, request_id: str) -> str | 
 
             if status == "done":
                 result_url = job_data.get("result_url") or job_data.get("output", [None])[0]
-                if result_url:
-                    logger.info("Image ready: %s", request_id)
-                    return result_url
+                
+                # Try to find URL in nested structures if result_url is still None
+                if not result_url:
+                    outputs = job_data.get("output", job_data.get("outputs", []))
+                    if isinstance(outputs, list) and outputs:
+                        result_url = outputs[0] if isinstance(outputs[0], str) else str(outputs[0])
 
-                # Try to find URL in nested structures
-                outputs = job_data.get("output", job_data.get("outputs", []))
-                if isinstance(outputs, list) and outputs:
-                    return outputs[0] if isinstance(outputs[0], str) else str(outputs[0])
+                if result_url:
+                    logger.info("Image ready: %s. Downloading to convert to base64...", request_id)
+                    try:
+                        import base64
+                        # Download the image without DeAPI headers first (for S3 presigned URLs)
+                        async with httpx.AsyncClient() as dl_client:
+                            img_resp = await dl_client.get(result_url)
+                            if img_resp.status_code in (401, 403):
+                                # Retry with auth headers if needed
+                                img_resp = await client.get(result_url, headers=headers)
+                            img_resp.raise_for_status()
+                            
+                            b64_img = base64.b64encode(img_resp.content).decode('utf-8')
+                            content_type = img_resp.headers.get("content-type", "image/jpeg")
+                            return f"data:{content_type};base64,{b64_img}"
+                    except Exception as e:
+                        logger.error("Failed to download image %s: %s", result_url, e)
+                        return result_url # fallback to returning the raw URL
 
                 logger.warning("Job done but no result URL found for %s", request_id)
                 return None

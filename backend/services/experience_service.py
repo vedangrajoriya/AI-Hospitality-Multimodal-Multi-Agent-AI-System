@@ -27,6 +27,12 @@ async def generate_travel_experience(request: TravelRequest) -> TravelResponse:
     """
     settings = get_settings()
 
+    if not settings.GROQ_API_KEY:
+        raise ValueError(
+            "GROQ_API_KEY is not configured in the environment variables. "
+            "Please configure GROQ_API_KEY in your Railway deployment dashboard."
+        )
+
     logger.info(
         "Starting pipeline: destination=%s, days=%d, budget=%s",
         request.destination,

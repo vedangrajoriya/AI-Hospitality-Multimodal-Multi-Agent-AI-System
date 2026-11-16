@@ -1,7 +1,16 @@
 import axios from 'axios';
 
-// Update with your production URL if needed
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+declare global {
+  interface Window {
+    __API_URL__?: string;
+  }
+}
+
+// Configured via VITE_API_URL or falls back safely in dev/prod
+const API_BASE_URL =
+  (typeof window !== 'undefined' && window.__API_URL__) ||
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? '' : 'http://localhost:8000');
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

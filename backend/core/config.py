@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     )
 
     # --- API Keys (never logged) ---
-    GROQ_API_KEY: str
-    DEAPI_API_KEY: str
+    GROQ_API_KEY: str = ""
+    DEAPI_API_KEY: str = ""
 
     # --- Model configuration ---
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     DEAPI_BASE_URL: str = "https://api.deapi.ai"
 
     # --- App ---
+    PORT: int = 8000
     LOG_LEVEL: str = "INFO"
     DEAPI_POLL_INTERVAL: float = 2.0
     DEAPI_POLL_TIMEOUT: float = 120.0

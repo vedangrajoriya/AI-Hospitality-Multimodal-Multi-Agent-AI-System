@@ -4,12 +4,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package.json and install dependencies
-COPY ../frontend/package.json ../frontend/package-lock.json* ./
-# Use clean install for reproducible builds (if package-lock exists), otherwise standard install
+COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
 
 # Copy source code
-COPY ../frontend/ ./
+COPY frontend/ ./
 
 # Define build arguments to be passed as environment variables during build time
 ARG VITE_API_URL
@@ -27,10 +26,10 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom Nginx configuration
-COPY deployment/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy Nginx template with dynamic $PORT support
+COPY deployment/nginx.conf.template /etc/nginx/templates/default.conf.template
 
-# Expose port 80
+ENV PORT=80
 EXPOSE 80
 
 # Run Nginx in foreground
