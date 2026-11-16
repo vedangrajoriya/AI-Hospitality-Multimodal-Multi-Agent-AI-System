@@ -55,7 +55,7 @@ In your Railway service, navigate to the **Variables** tab, click **"RAW Editor"
 ```env
 GROQ_API_KEY=your_groq_api_key_here
 DEAPI_API_KEY=your_deapi_key_here
-GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_MODEL=openai/gpt-oss-120b
 DEAPI_IMAGE_MODEL=Flux1schnell
 DEAPI_BASE_URL=https://api.deapi.ai
 LOG_LEVEL=INFO

@@ -21,8 +21,12 @@ async def generate_experience_text(prompt: str) -> str:
         "Content-Type": "application/json",
     }
 
+    model_name = settings.GROQ_MODEL.strip()
+    if model_name.startswith("groq/"):
+        model_name = model_name[len("groq/"):]
+
     payload = {
-        "model": settings.GROQ_MODEL,
+        "model": model_name,
         "messages": [
             {
                 "role": "system",

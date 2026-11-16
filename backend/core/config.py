@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     DEAPI_API_KEY: str = ""
 
     # --- Model configuration ---
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
     DEAPI_IMAGE_MODEL: str = "flux-1.1-schnell"
     DEAPI_BASE_URL: str = "https://api.deapi.ai"
 

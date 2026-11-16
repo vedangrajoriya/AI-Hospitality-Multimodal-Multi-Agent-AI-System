@@ -34,7 +34,8 @@ def _build_crew(request: TravelRequest) -> Crew:
     os.environ["GROQ_API_KEY"] = settings.GROQ_API_KEY
 
     # CrewAI uses LiteLLM internally — model must be prefixed with provider name
-    llm = f"groq/{settings.GROQ_MODEL}"
+    model_name = settings.GROQ_MODEL.strip()
+    llm = model_name if model_name.startswith("groq/") else f"groq/{model_name}"
 
     researcher = create_researcher_agent(llm)
     writer = create_writer_agent(llm)
