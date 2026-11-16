@@ -34,3 +34,4 @@ EXIT_CODE=$?
 echo "A service process exited with code $EXIT_CODE. Shutting down container."
 kill -TERM $UVICORN_PID $NGINX_PID 2>/dev/null || true
 exit $EXIT_CODE
+

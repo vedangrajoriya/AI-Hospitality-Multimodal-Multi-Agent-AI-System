@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     DEAPI_API_KEY: str = ""
 
-    # --- Model configuration ---
-    GROQ_MODEL: str = "openai/gpt-oss-120b"
+    # --- Model configuration (falls back dynamically across 20b, 120b, and qwen3.8-27b) ---
+    GROQ_MODEL: str = "openai/gpt-oss-20b"
     DEAPI_IMAGE_MODEL: str = "flux-1.1-schnell"
     DEAPI_BASE_URL: str = "https://api.deapi.ai"
 

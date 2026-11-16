@@ -36,3 +36,4 @@ EXIT_CODE=$?
 echo "Process exited with code $EXIT_CODE."
 kill -TERM $UVICORN_PID $NGINX_PID 2>/dev/null || true
 exit $EXIT_CODE
+
