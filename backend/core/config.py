@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     PORT: int = 8000
     LOG_LEVEL: str = "INFO"
     DEAPI_POLL_INTERVAL: float = 2.0
-    DEAPI_POLL_TIMEOUT: float = 120.0
-    IMAGE_COUNT: int = 3
+    DEAPI_POLL_TIMEOUT: float = 45.0
+    IMAGE_COUNT: int = 2
 
 
 @lru_cache
