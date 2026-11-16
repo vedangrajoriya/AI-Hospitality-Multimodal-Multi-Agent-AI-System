@@ -6,11 +6,31 @@ declare global {
   }
 }
 
-// Configured via VITE_API_URL or falls back safely in dev/prod
-const API_BASE_URL =
-  (typeof window !== 'undefined' && window.__API_URL__) ||
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:8000');
+// In single-service production, frontend and backend share the exact same domain.
+// Fall back to relative path ("") in production so Nginx reverse-proxies directly.
+const getBaseUrl = (): string => {
+  if (typeof window !== 'undefined' && window.__API_URL__) {
+    return window.__API_URL__;
+  }
+
+  let envUrl = import.meta.env.VITE_API_URL?.trim();
+  if (envUrl) {
+    // Fix accidental double .up.railway.app suffixes
+    envUrl = envUrl.replace(/(\.up\.railway\.app)+/g, '.up.railway.app');
+    // Remove trailing slash
+    envUrl = envUrl.replace(/\/+$/, '');
+    return envUrl;
+  }
+
+  // In production (single-container deployment), use relative path
+  if (import.meta.env.PROD) {
+    return '';
+  }
+
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

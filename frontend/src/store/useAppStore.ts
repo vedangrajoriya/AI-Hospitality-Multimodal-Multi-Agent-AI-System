@@ -28,7 +28,12 @@ export const useAppStore = create<AppState>((set) => ({
       const result = await generateExperience(payload);
       set({ status: 'success', data: result, loadingStep: 4 });
     } catch (error: any) {
-      const message = error.response?.data?.error || error.message || 'Failed to generate experience.';
+      const rawDetail = error.response?.data?.detail;
+      const message =
+        (typeof rawDetail === 'string' ? rawDetail : (rawDetail ? JSON.stringify(rawDetail) : null)) ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to generate experience.';
       set({ status: 'error', error: message });
     }
   },

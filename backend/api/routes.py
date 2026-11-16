@@ -36,9 +36,12 @@ async def generate_experience(request: TravelRequest) -> TravelResponse:
 
     except Exception as exc:
         logger.exception("Pipeline failed for destination=%s", request.destination)
+        err_msg = str(exc)
+        if "invalid_api_key" in err_msg.lower() or "invalid api key" in err_msg.lower():
+            err_msg = "Invalid or expired Groq API Key. Please check the GROQ_API_KEY environment variable in your Railway dashboard."
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate travel experience: {str(exc)}",
+            detail=f"Failed to generate travel experience: {err_msg}",
         ) from exc
 
 
