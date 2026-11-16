@@ -25,6 +25,14 @@ async def generate_experience_text(prompt: str) -> str:
     if model_name.startswith("groq/"):
         model_name = model_name[len("groq/"):]
 
+    # Fallback chain for narrative generation
+    candidate_models = [
+        model_name,
+        "openai/gpt-oss-20b" if "120b" in model_name else "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b",
+    ]
+    candidate_models = list(dict.fromkeys(candidate_models))
+
     payload = {
         "model": model_name,
         "messages": [
@@ -43,13 +51,26 @@ async def generate_experience_text(prompt: str) -> str:
         "top_p": 0.9,
     }
 
-    logger.info("Sending request to Groq API (model=%s)", settings.GROQ_MODEL)
-
+    last_exception = None
     async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post(_GROQ_CHAT_URL, headers=headers, json=payload)
-        response.raise_for_status()
+        for candidate in candidate_models:
+            payload["model"] = candidate
+            logger.info("Sending request to Groq API (model=%s)", candidate)
+            try:
+                response = await client.post(_GROQ_CHAT_URL, headers=headers, json=payload)
+                if response.status_code == 429:
+                    logger.warning("Groq rate limit (429) on %s, shifting to next fallback model...", candidate)
+                    continue
+                response.raise_for_status()
+                data = response.json()
+                text = data["choices"][0]["message"]["content"].strip()
+                logger.info("Groq response received from %s (%d chars)", candidate, len(text))
+                return text
+            except Exception as exc:
+                last_exception = exc
+                logger.warning("Error with model %s: %s; trying next fallback...", candidate, exc)
+                continue
 
-    data = response.json()
-    text = data["choices"][0]["message"]["content"].strip()
-    logger.info("Groq response received (%d chars)", len(text))
-    return text
+    if last_exception:
+        raise last_exception
+    return "An extraordinary bespoke journey crafted for discerning travelers."

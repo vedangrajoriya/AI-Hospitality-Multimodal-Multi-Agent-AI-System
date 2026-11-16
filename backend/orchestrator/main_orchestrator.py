@@ -8,6 +8,7 @@ from functools import partial
 
 import litellm
 from crewai import Crew, Task, Process
+from crewai.llm import LLM
 
 # Automatically retry and backoff when Groq rate limits (429) occur
 litellm.num_retries = 5
@@ -38,9 +39,22 @@ def _build_crew(request: TravelRequest) -> Crew:
     # Expose GROQ_API_KEY to os.environ so LiteLLM (used by CrewAI) can find it
     os.environ["GROQ_API_KEY"] = settings.GROQ_API_KEY
 
-    # CrewAI uses LiteLLM internally — model must be prefixed with provider name
+    # CrewAI uses LiteLLM internally — configure model and fallbacks
     model_name = settings.GROQ_MODEL.strip()
-    llm = model_name if model_name.startswith("groq/") else f"groq/{model_name}"
+    primary = model_name if model_name.startswith("groq/") else f"groq/{model_name}"
+
+    candidates = [
+        "groq/openai/gpt-oss-20b",
+        "groq/openai/gpt-oss-120b",
+        "groq/qwen/qwen3.8-27b",
+    ]
+    fallbacks = [m for m in candidates if m != primary]
+
+    # Global safety net in LiteLLM for any completions
+    litellm.model_fallbacks = fallbacks
+
+    # Create LLM instance with automatic rate-limit fallbacks
+    llm = LLM(model=primary, fallbacks=fallbacks)
 
     researcher = create_researcher_agent(llm)
     writer = create_writer_agent(llm)
