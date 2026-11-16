@@ -1,110 +1,72 @@
-# 🚂 Railway Deployment Guide: Celestial Concierge
+# 🚂 Railway Single-Service Deployment: Celestial Concierge
 
-This guide walks you through deploying **Celestial Concierge** (FastAPI backend + React frontend) to [Railway](https://railway.com) in production.
+Deploy **both frontend and backend together** under a **single service** on [Railway](https://railway.com).
 
 ---
 
-## 🏗️ Architecture on Railway
+## 🏗️ How the Single Service Architecture Works
 
-The repository is configured as a monorepo containing two separate Railway services:
+In this unified deployment:
+- **Root `Dockerfile`**: Multi-stage build that compiles the React 19 frontend into static files and builds the Python 3.11 FastAPI virtual environment.
+- **Nginx Reverse Proxy**: Listens on Railway's `$PORT`.
+  - Serves the frontend single-page application at `/`.
+  - Reverse-proxies all backend API calls (`/generate-experience`, `/health`, `/docs`) directly to the local FastAPI server (`127.0.0.1:8000`).
+- **Zero CORS Issues**: Since both frontend and backend are served from the same domain, there are no cross-origin errors or separate domains needed.
+- **Single Service Cost**: You only run 1 service on Railway, saving resources and setup complexity.
 
 ```
-                      ┌───────────────────────────────────────────────┐
-                      │             Railway Project                   │
-                      │                                               │
-                      │  ┌─────────────────┐     ┌─────────────────┐  │
-                      │  │ Frontend Service│     │ Backend Service │  │
-                      │  │  (React/Nginx)  │────▶│ (FastAPI/CrewAI)│  │
-                      │  │  Root: frontend │     │  Root: backend  │  │
-                      │  └─────────────────┘     └─────────────────┘  │
-                      └───────────────────────────────────────────────┘
+                  ┌───────────────────────────────────────────────┐
+                  │             Railway Single Service            │
+                  │                                               │
+                  │              Public Port ($PORT)              │
+                  │                       │                       │
+                  │                       ▼                       │
+                  │              ┌─────────────────┐              │
+                  │              │  Nginx Gateway  │              │
+                  │              └────────┬────────┘              │
+                  │           ┌───────────┴───────────┐           │
+                  │           │                       │           │
+                  │     / (Static Web)         /generate-experience│
+                  │           │                /health            │
+                  │           ▼                       │           │
+                  │ ┌───────────────────┐             ▼           │
+                  │ │   React 19 App    │    ┌──────────────────┐ │
+                  │ │ (Three.js Glass)  │    │ FastAPI + CrewAI │ │
+                  │ │ (/var/www/frontend│    │ (127.0.0.1:8000) │ │
+                  │ └───────────────────┘    └──────────────────┘ │
+                  └───────────────────────────────────────────────┘
 ```
 
-Both services include their own optimized **`Dockerfile`**, **`railway.json`**, and support Railway's dynamic **`$PORT`** injection.
-
 ---
 
-## 📋 Prerequisites
+## 🚀 Step-by-Step Deployment Instructions
 
-1. A [Railway Account](https://railway.com).
-2. Your project pushed to a GitHub repository.
-3. API Keys:
-   - **`GROQ_API_KEY`**: For CrewAI agents & Groq LLM narratives.
-   - **`DEAPI_API_KEY`**: For Flux image generation.
-
----
-
-## 🚀 Step 1: Deploy the Backend Service
-
-1. Go to your [Railway Dashboard](https://railway.com/dashboard) and click **"New Project"**.
+### Step 1: Connect your Repository
+1. In your **[Railway Dashboard](https://railway.com/dashboard)**, click **"New Project"**.
 2. Select **"Deploy from GitHub repo"** and choose your repository.
-3. Once created, click on the newly created service and go to **Settings**:
-   - **Service Name**: Rename it to `backend` (e.g., `celestial-backend`).
-   - **Root Directory**: Set to `backend`.
-4. Railway will automatically detect `backend/Dockerfile` and `backend/railway.json`.
-5. Go to the **Variables** tab and add the following environment variables:
-
-| Variable | Value / Description | Required? |
-| :--- | :--- | :--- |
-| `GROQ_API_KEY` | Your Groq API key (`gsk_...`) | **Yes** |
-| `DEAPI_API_KEY` | Your deAPI API key | **Yes** |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Optional (default) |
-| `DEAPI_IMAGE_MODEL` | `flux-1.1-schnell` | Optional (default) |
-| `DEAPI_BASE_URL` | `https://api.deapi.ai` | Optional (default) |
-| `LOG_LEVEL` | `INFO` | Optional |
-
-6. Go to **Settings** > **Networking**:
-   - Click **"Generate Domain"** to get a public URL (e.g., `https://celestial-backend-production.up.railway.app`).
-7. **Verify Backend Health**:
-   - Open your browser or curl:
-     ```bash
-     curl https://<your-backend-domain>.up.railway.app/health
-     ```
-   - Expected response: `{"status":"healthy","service":"ai-hospitality-platform"}`.
+3. Keep the **Root Directory** as the default: `/`.
+4. Railway will automatically detect the root **`Dockerfile`** and **`railway.json`**.
 
 ---
 
-## 🎨 Step 2: Deploy the Frontend Service
+### Step 2: Set Environment Variables
+In your Railway service, navigate to the **Variables** tab, click **"RAW Editor"**, and paste:
 
-1. In the **same Railway project**, click **"+ New"** > **"GitHub Repo"** and select the same repository again.
-2. Click on this second service and go to **Settings**:
-   - **Service Name**: Rename it to `frontend` (e.g., `celestial-frontend`).
-   - **Root Directory**: Set to `frontend`.
-3. Railway will automatically detect `frontend/Dockerfile` and `frontend/railway.json`.
-4. Go to the **Variables** tab and configure:
+```env
+GROQ_API_KEY=your_groq_api_key_here
+DEAPI_API_KEY=your_deapi_key_here
+GROQ_MODEL=llama-3.3-70b-versatile
+DEAPI_IMAGE_MODEL=Flux1schnell
+DEAPI_BASE_URL=https://api.deapi.ai
+LOG_LEVEL=INFO
+```
 
-| Variable | Value | Description |
-| :--- | :--- | :--- |
-| `VITE_API_URL` | `https://<your-backend-domain>.up.railway.app` | **Your public backend Railway URL from Step 1** |
-
-> [!IMPORTANT]
-> Ensure `VITE_API_URL` has **no trailing slash** (e.g., `https://celestial-backend-production.up.railway.app`). Vite embeds this at build time so the browser communicates with your Railway backend.
-
-5. Go to **Settings** > **Networking**:
-   - Click **"Generate Domain"** to get your public frontend domain (e.g., `https://celestial-frontend-production.up.railway.app`).
+*(You do **not** need to set `VITE_API_URL` or `PORT` — Nginx and Railway handle routing and ports automatically).*
 
 ---
 
-## 🔍 Step 3: Verification & Live Test
-
-1. Visit your public frontend domain in your web browser.
-2. Enter a destination (e.g., `Kyoto, Japan`), duration (e.g., `5`), budget (e.g., `$3,500`), and select interests.
-3. Click **"Synthesize Experience"**.
-4. Observe the interactive loading sequence as the CrewAI agents and GenAI pipelines run:
-   - **Researcher & Writer**: Curates attractions and builds the day-by-day itinerary.
-   - **Budget Analyst**: Formulates expense breakdown.
-   - **Hotel Advisor**: Selects boutique & luxury accommodations.
-   - **Groq & Flux**: Produces the narrative description and generates destination images.
-5. Review the resulting glassmorphic travel dashboard.
-
----
-
-## 🛠️ Features Included for Railway
-
-- **Dynamic `$PORT` Support**: Both backend (FastAPI/Uvicorn) and frontend (Nginx template) adapt to Railway's assigned port dynamically.
-- **Production Multi-Stage Dockerfiles**:
-  - `backend/Dockerfile`: Minimal Debian-slim image with compiled dependencies in a virtual environment running as a non-root user.
-  - `frontend/Dockerfile`: Multi-stage build producing static assets served by high-performance Nginx with Gzip compression and SPA routing.
-- **Self-Healing Health Checks**: Pre-configured `/health` route and `railway.json` descriptors for automated zero-downtime deploys.
-- **CORS Configured**: FastAPI is configured to allow requests from any frontend domain.
-
+### Step 3: Generate Domain & Launch
+1. Go to **Settings** ➔ **Networking**.
+2. Click **"Generate Domain"** (e.g., `https://celestial-concierge-production.up.railway.app`).
+3. Open the generated domain in your browser!
+4. The React application with 3D particles will load, and clicking **"Synthesize Experience"** will seamlessly query the backend on the same domain.
