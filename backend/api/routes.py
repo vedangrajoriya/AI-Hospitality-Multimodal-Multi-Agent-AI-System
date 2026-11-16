@@ -39,6 +39,8 @@ async def generate_experience(request: TravelRequest) -> TravelResponse:
         err_msg = str(exc)
         if "invalid_api_key" in err_msg.lower() or "invalid api key" in err_msg.lower():
             err_msg = "Invalid or expired Groq API Key. Please check the GROQ_API_KEY environment variable in your Railway dashboard."
+        elif "rate limit" in err_msg.lower() or "ratelimit" in err_msg.lower():
+            err_msg = "Groq free-tier rate limit reached (TPM exceeded). Please wait 15 seconds and try again, or switch to 'openai/gpt-oss-20b' in Railway for higher limits."
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate travel experience: {err_msg}",

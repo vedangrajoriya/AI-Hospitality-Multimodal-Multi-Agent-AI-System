@@ -6,7 +6,12 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
+import litellm
 from crewai import Crew, Task, Process
+
+# Automatically retry and backoff when Groq rate limits (429) occur
+litellm.num_retries = 5
+litellm.retry_delay = 12
 
 from agents.researcher import create_researcher_agent
 from agents.writer import create_writer_agent
